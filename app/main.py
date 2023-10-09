@@ -24,7 +24,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
-FORUM_CHANNEL_ID = 1160929653897298051
+FORUM_CHANNEL_ID = int(os.getenv("FORUM_CHANNEL_ID"))
 
 
 async def handle_events(payload):
