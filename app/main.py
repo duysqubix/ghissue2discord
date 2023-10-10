@@ -45,7 +45,7 @@ async def _handle_issue_open(payload):
         f"**{issue_title}**\n\n{issue_content}\n\n{issue_url}\n\n"
         f"**Repository:** {repo_name}\n{repo_url}\n\n"
         f"**Created at:** {issue_creation_date}\n\n"
-        f"id: {issue.get('id')}\n\n"
+        f"id:{issue.get('id')}\n\n"
     )
 
     channel = client.get_channel(FORUM_CHANNEL_ID)
@@ -56,22 +56,8 @@ async def _handle_issue_open(payload):
 
     for tag in channel.available_tags:
         if tag.name == repo_name:
-            await thread.add_tag(tag)
+            await thread.edit(applied_tags=[tag])
 
-    return thread
-
-
-async def _handle_issue_close(payload):
-    issueId = payload.get("issue", {}).get("id")
-
-    if not issueId:
-        raise Exception("Issue id not found")
-
-    channel = client.get_channel(FORUM_CHANNEL_ID)
-    thread = await channel.create_thread(
-        name=issue_title,
-        content=content,
-    )
     return thread
 
 
