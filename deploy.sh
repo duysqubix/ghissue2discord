@@ -11,4 +11,4 @@ docker rmi ghbot
 docker build -t ghbot . && \
 
 # run container
-docker run -d --name ghbot -v ./.env:/app/app/.env -p 80:80 ghbot
+docker run -d --name ghbot -v $PWD/.env:/app/app/.env -p 80:80 ghbot

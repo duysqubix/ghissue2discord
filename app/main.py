@@ -11,6 +11,8 @@ import asyncio
 import json
 import os
 import logging
+import re
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,6 +26,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 FORUM_CHANNEL_ID = int(os.getenv("FORUM_CHANNEL_ID"))
 
 
@@ -46,31 +49,52 @@ async def _handle_issue_open(payload):
     repo_url = repo.get("html_url")
 
     content = (
-        f"**{issue_title}**\n\n{issue_content}\n\n{issue_url}\n\n"
-        f"**Repository:** {repo_name}\n{repo_url}\n\n"
-        f"**Created at:** {issue_creation_date}"
+        f"{issue_content}\n\n"
+        f"{issue_url}\n\n"
+        f"**Repository:**\n{repo_url}\n\n"
+        f"**Created at:** {issue_creation_date} by "
+        f"[{issue.get('user').get('login')}]( {issue.get('user').get('html_url')} )\n\n"
+        f"id:{issue.get('id')}\n"
     )
 
     channel = client.get_channel(FORUM_CHANNEL_ID)
-    return await channel.create_thread(
+    thread = await channel.create_thread(
         name=issue_title,
         content=content,
     )
+
+
+async def _handle_issue_close(payload):
+    issue = payload.get("issue")
+    id = issue.get("id")
+
+    rpattern = re.compile(r"id:(\d+)")
+
+    channel = client.get_channel(FORUM_CHANNEL_ID)
+    thread = channel.threads[0]
+    for thread in channel.threads:
+        hist = thread.history(oldest_first=True)
+        async for msg in hist:
+            if rp := rpattern.search(msg.content):
+                if int(rp.group(1)) == id:
+                    await thread.send("Issue closed, archiving thread.")
+                    await thread.archive(locked=True)
+                    return
 
 
 async def handle_issues(payload):
     if payload.get("action") == "opened":
         return await _handle_issue_open(payload)
 
+    if payload.get("action") == "closed":
+        return await _handle_issue_close(payload)
+
 
 @app.on_event("startup")
 def setup():
-    asyncio.create_task(client.start(os.getenv("DISCORD_TOKEN")))
+    asyncio.create_task(client.start(DISCORD_TOKEN))
 
 
 @app.post("/gopxl/webhook")
 async def test_create_issue(payload=Body(...)):
-    # thread = await channel.create_thread(
-    #     name="@Dusk125", auto_archive_duration=1440, content="I love technology."
-    # )
     thread = await handle_events(payload)
