@@ -57,7 +57,7 @@ async def _handle_issue_open(payload):
     for tag in channel.available_tags:
         if tag.name == repo_name:
             await thread.add_tag(tag)
-            
+
     return thread
 
 
@@ -100,8 +100,6 @@ async def handle_issues(payload):
     if payload.get("action") == "closed":
         return await _handle_issue_close(payload)
 
-<<<<<<< HEAD
-=======
 
 async def handle_events(payload):
     if "issue" in payload:
@@ -109,7 +107,6 @@ async def handle_events(payload):
 
     return True
 
->>>>>>> changes
 
 @app.on_event("startup")
 def setup():
@@ -117,10 +114,5 @@ def setup():
 
 
 @app.post("/gopxl/webhook")
-<<<<<<< HEAD
-async def test_create_issue(payload=Body(...)):
-    thread = await handle_events(payload)
-=======
 async def handle_webhooks(payload=Body(...)):
     _ = await handle_events(payload)
->>>>>>> changes
