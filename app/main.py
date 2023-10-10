@@ -30,13 +30,6 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 FORUM_CHANNEL_ID = int(os.getenv("FORUM_CHANNEL_ID"))
 
 
-async def handle_events(payload):
-    if "issue" in payload:
-        await handle_issues(payload)
-
-    return True
-
-
 async def _handle_issue_open(payload):
     issue = payload.get("issue")
     issue_url = issue.get("html_url")
@@ -49,12 +42,10 @@ async def _handle_issue_open(payload):
     repo_url = repo.get("html_url")
 
     content = (
-        f"{issue_content}\n\n"
-        f"{issue_url}\n\n"
-        f"**Repository:**\n{repo_url}\n\n"
-        f"**Created at:** {issue_creation_date} by "
-        f"[{issue.get('user').get('login')}]( {issue.get('user').get('html_url')} )\n\n"
-        f"id:{issue.get('id')}\n"
+        f"**{issue_title}**\n\n{issue_content}\n\n{issue_url}\n\n"
+        f"**Repository:** {repo_name}\n{repo_url}\n\n"
+        f"**Created at:** {issue_creation_date}\n\n"
+        f"id: {issue.get('id')}\n\n"
     )
 
     channel = client.get_channel(FORUM_CHANNEL_ID)
@@ -62,6 +53,26 @@ async def _handle_issue_open(payload):
         name=issue_title,
         content=content,
     )
+
+    for tag in channel.available_tags:
+        if tag.name == repo_name:
+            await thread.add_tag(tag)
+            
+    return thread
+
+
+async def _handle_issue_close(payload):
+    issueId = payload.get("issue", {}).get("id")
+
+    if not issueId:
+        raise Exception("Issue id not found")
+
+    channel = client.get_channel(FORUM_CHANNEL_ID)
+    thread = await channel.create_thread(
+        name=issue_title,
+        content=content,
+    )
+    return thread
 
 
 async def _handle_issue_close(payload):
@@ -89,6 +100,16 @@ async def handle_issues(payload):
     if payload.get("action") == "closed":
         return await _handle_issue_close(payload)
 
+<<<<<<< HEAD
+=======
+
+async def handle_events(payload):
+    if "issue" in payload:
+        await handle_issues(payload)
+
+    return True
+
+>>>>>>> changes
 
 @app.on_event("startup")
 def setup():
@@ -96,5 +117,10 @@ def setup():
 
 
 @app.post("/gopxl/webhook")
+<<<<<<< HEAD
 async def test_create_issue(payload=Body(...)):
     thread = await handle_events(payload)
+=======
+async def handle_webhooks(payload=Body(...)):
+    _ = await handle_events(payload)
+>>>>>>> changes
