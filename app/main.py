@@ -27,13 +27,6 @@ client = discord.Client(intents=intents)
 FORUM_CHANNEL_ID = int(os.getenv("FORUM_CHANNEL_ID"))
 
 
-async def handle_events(payload):
-    if "issue" in payload:
-        await handle_issues(payload)
-
-    return True
-
-
 async def _handle_issue_open(payload):
     issue = payload.get("issue")
     issue_url = issue.get("html_url")
@@ -48,19 +41,50 @@ async def _handle_issue_open(payload):
     content = (
         f"**{issue_title}**\n\n{issue_content}\n\n{issue_url}\n\n"
         f"**Repository:** {repo_name}\n{repo_url}\n\n"
-        f"**Created at:** {issue_creation_date}"
+        f"**Created at:** {issue_creation_date}\n\n"
+        f"id: {issue.get('id')}\n\n"
     )
 
     channel = client.get_channel(FORUM_CHANNEL_ID)
-    return await channel.create_thread(
+    thread = await channel.create_thread(
         name=issue_title,
         content=content,
     )
+
+    for tag in channel.available_tags:
+        if tag.name == repo_name:
+            await thread.add_tag(tag)
+            
+    return thread
+
+
+async def _handle_issue_close(payload):
+    issueId = payload.get("issue", {}).get("id")
+
+    if not issueId:
+        raise Exception("Issue id not found")
+
+    channel = client.get_channel(FORUM_CHANNEL_ID)
+    thread = await channel.create_thread(
+        name=issue_title,
+        content=content,
+    )
+    return thread
 
 
 async def handle_issues(payload):
     if payload.get("action") == "opened":
         return await _handle_issue_open(payload)
+
+    if payload.get("action") == "closed":
+        return await _handle_issue_close(payload)
+
+
+async def handle_events(payload):
+    if "issue" in payload:
+        await handle_issues(payload)
+
+    return True
 
 
 @app.on_event("startup")
@@ -69,8 +93,5 @@ def setup():
 
 
 @app.post("/gopxl/webhook")
-async def test_create_issue(payload=Body(...)):
-    # thread = await channel.create_thread(
-    #     name="@Dusk125", auto_archive_duration=1440, content="I love technology."
-    # )
-    thread = await handle_events(payload)
+async def handle_webhooks(payload=Body(...)):
+    _ = await handle_events(payload)
